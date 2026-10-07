@@ -1,0 +1,3 @@
+document.querySelector('.menu-toggle')?.addEventListener('click',e=>{const nav=document.querySelector('.nav-links');const open=nav.classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',String(open));});
+document.querySelectorAll('[data-confirm]').forEach(form=>form.addEventListener('submit',e=>{if(!confirm(form.dataset.confirm))e.preventDefault();}));
+document.querySelectorAll('[data-filter]').forEach(input=>input.addEventListener('input',()=>{const target=document.querySelector(input.dataset.filter);const q=input.value.toLowerCase();target?.querySelectorAll('tbody tr').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(q));}));
