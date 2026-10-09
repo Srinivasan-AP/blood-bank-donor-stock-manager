@@ -37,12 +37,20 @@ INSERT INTO blood_stock (blood_group, units, low_stock_threshold) VALUES
 ('A+',18,5),('A-',7,5),('B+',14,5),('B-',4,5),('AB+',9,5),('AB-',3,5),('O+',22,5),('O-',6,5)
 ON DUPLICATE KEY UPDATE blood_group=VALUES(blood_group);
 
-INSERT INTO donors (name,blood_group,phone,city,last_donation_date) VALUES
-('Demo Donor One','A+','000-000-0101','Chennai','2025-08-12'),
-('Demo Donor Two','O+','000-000-0102','Coimbatore','2025-06-20'),
-('Demo Donor Three','B-','000-000-0103','Madurai',NULL),
-('Demo Donor Four','AB+','000-000-0104','Trichy','2025-09-05');
+INSERT INTO donors (name,blood_group,phone,city,last_donation_date)
+SELECT seed.name,seed.blood_group,seed.phone,seed.city,seed.last_donation_date
+FROM (
+  SELECT 'Demo Donor One' AS name,'A+' AS blood_group,'000-000-0101' AS phone,'Chennai' AS city,'2025-08-12' AS last_donation_date
+  UNION ALL SELECT 'Demo Donor Two','O+','000-000-0102','Coimbatore','2025-06-20'
+  UNION ALL SELECT 'Demo Donor Three','B-','000-000-0103','Madurai',NULL
+  UNION ALL SELECT 'Demo Donor Four','AB+','000-000-0104','Trichy','2025-09-05'
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM donors WHERE donors.phone=seed.phone);
 
-INSERT INTO blood_requests (requester_name,blood_group,units,contact_phone,organization,status) VALUES
-('Sample Request Alpha','O+','2','000-000-0201','Demo General Hospital','Pending'),
-('Sample Request Beta','B-','1','000-000-0202','Example Care Centre','Approved');
+INSERT INTO blood_requests (requester_name,blood_group,units,contact_phone,organization,status)
+SELECT seed.requester_name,seed.blood_group,seed.units,seed.contact_phone,seed.organization,seed.status
+FROM (
+  SELECT 'Sample Request Alpha' AS requester_name,'O+' AS blood_group,2 AS units,'000-000-0201' AS contact_phone,'Demo General Hospital' AS organization,'Pending' AS status
+  UNION ALL SELECT 'Sample Request Beta','B-',1,'000-000-0202','Example Care Centre','Approved'
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM blood_requests WHERE blood_requests.contact_phone=seed.contact_phone);

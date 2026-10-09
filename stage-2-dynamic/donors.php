@@ -4,10 +4,15 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $groups=['A+','A-','B+','B-','AB+','AB-','O+','O-'];
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf(); $action=$_POST['action']??'';
-    if ($action==='delete') { db()->prepare('DELETE FROM donors WHERE id=?')->execute([(int)$_POST['id']]); flash('Donor record deleted.'); redirect('donors.php'); }
+    if ($action==='delete') { $id=filter_var($_POST['id']??null,FILTER_VALIDATE_INT); if(!$id||$id<1){flash('Invalid donor record.','error');redirect('donors.php');} db()->prepare('DELETE FROM donors WHERE id=?')->execute([$id]); flash('Donor record deleted.'); redirect('donors.php'); }
+    if (!in_array($action,['add','edit'],true)) { flash('Invalid donor action.','error'); redirect('donors.php'); }
+    $id=filter_var($_POST['id']??null,FILTER_VALIDATE_INT);
+    if ($action==='edit'&&(!$id||$id<1)) { flash('Invalid donor record.','error'); redirect('donors.php'); }
     $name=trim((string)($_POST['name']??'')); $blood= (string)($_POST['blood_group']??''); $phone=trim((string)($_POST['phone']??'')); $city=trim((string)($_POST['city']??'')); $date=(string)($_POST['last_donation_date']??'');
-    if ($name===''||!in_array($blood,$groups,true)||!preg_match('/^[0-9+()\- ]{7,20}$/',$phone)||$city===''||($date!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$date))) { flash('Please enter valid details in all required fields.','error'); redirect('donors.php'.(!empty($_POST['id'])?'?edit='.(int)$_POST['id']:'?new=1')); }
-    if ($action==='edit') { db()->prepare('UPDATE donors SET name=?,blood_group=?,phone=?,city=?,last_donation_date=? WHERE id=?')->execute([$name,$blood,$phone,$city,$date?:null,(int)$_POST['id']]); flash('Donor details updated.'); }
+    $parsedDate=$date===''?null:DateTimeImmutable::createFromFormat('!Y-m-d',$date);
+    $validDate=$date===''||($parsedDate&&$parsedDate->format('Y-m-d')===$date&&$date<=date('Y-m-d'));
+    if ($name===''||mb_strlen($name)>100||!in_array($blood,$groups,true)||!preg_match('/^[0-9+()\- ]{7,20}$/',$phone)||$city===''||mb_strlen($city)>80||!$validDate) { flash('Please enter valid details in all required fields.','error'); redirect('donors.php'.($action==='edit'?'?edit='.$id:'?new=1')); }
+    if ($action==='edit') { db()->prepare('UPDATE donors SET name=?,blood_group=?,phone=?,city=?,last_donation_date=? WHERE id=?')->execute([$name,$blood,$phone,$city,$date?:null,$id]); flash('Donor details updated.'); }
     else { db()->prepare('INSERT INTO donors(name,blood_group,phone,city,last_donation_date) VALUES(?,?,?,?,?)')->execute([$name,$blood,$phone,$city,$date?:null]); flash('Donor added successfully.'); }
     redirect('donors.php');
 }
